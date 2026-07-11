@@ -1,0 +1,102 @@
+# monitoring/alert_rules.yml — Règles d'alerte Prometheus AutoCommerce v24 (Phase 6)
+
+groups:
+  - name: autocommerce.whatsapp
+    interval: 30s
+    rules:
+      - alert: WhatsAppQueueHigh
+        expr: message_queue_length{queue="wa:messages"} > 2000
+        for: 2m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "File WhatsApp saturée ({{ $value }} messages)"
+          description: "La queue wa:messages dépasse 2 000 messages depuis 2 minutes. Vérifier les workers Celery."
+
+      - alert: WhatsAppDLQNonEmpty
+        expr: message_queue_dlq_length > 0
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Messages en Dead Letter Queue ({{ $value }})"
+          description: "Des messages ont dépassé le max de retries et se trouvent dans la DLQ."
+
+      - alert: WhatsAppDLQCritical
+        expr: message_queue_dlq_length > 10
+        for: 1m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "DLQ critique : {{ $value }} messages bloqués"
+          description: "Intervention manuelle requise sur la DLQ wa:messages:dlq."
+
+  - name: autocommerce.openai
+    interval: 30s
+    rules:
+      - alert: OpenAIErrorRateHigh
+        expr: rate(openai_errors_total[5m]) > 0.5
+        for: 3m
+        labels:
+          severity: warning
+          team: ai
+        annotations:
+          summary: "Taux d'erreur OpenAI élevé ({{ $value }}/s)"
+          description: "Plus de 0.5 erreur/s vers OpenAI depuis 3 minutes."
+
+      - alert: OpenAIErrorRateCritical
+        expr: rate(openai_errors_total[5m]) > 2
+        for: 1m
+        labels:
+          severity: critical
+          team: ai
+        annotations:
+          summary: "OpenAI indisponible — {{ $value }} err/s"
+          description: "Circuit breaker recommandé. Vérifier le quota et la clé API."
+
+  - name: autocommerce.payments
+    interval: 30s
+    rules:
+      - alert: PaymeeFraudAttemptDetected
+        expr: rate(billing_events_total{provider="paymee",event_type="rejected"}[5m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "Tentative de fraud Paymee détectée"
+          description: "Un webhook Paymee avec checksum invalide a été rejeté."
+
+      - alert: PaymentWebhookErrors
+        expr: rate(billing_events_total{event_type="failed"}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Erreurs webhooks paiement ({{ $value }}/s)"
+
+  - name: autocommerce.fsm
+    interval: 60s
+    rules:
+      - alert: HumanHandoffRateHigh
+        expr: rate(human_handoffs_total[10m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+          team: operations
+        annotations:
+          summary: "Beaucoup d'escalades humaines ({{ $value }}/s)"
+          description: "Taux d'escalade vers support humain anormalement élevé."
+
+      - alert: ActiveConversationsHigh
+        expr: active_conversations_total > 900
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Conversations actives proches de la limite ({{ $value }})"

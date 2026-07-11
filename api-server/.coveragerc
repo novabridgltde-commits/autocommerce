@@ -1,0 +1,36 @@
+[run]
+source = .
+omit =
+    tests/*
+    alembic/*
+    htmlcov/*
+    reports/*
+    conftest.py
+    setup.py
+    */__pycache__/*
+    */migrations/*
+
+[report]
+# AUDIT FIX : seuil ramené à 48 (< 49.50% mesuré réellement sur toute la
+# suite) pour que la CI reflète l'état vrai du projet plutôt qu'un seuil
+# jamais atteint qui masquait le problème en ne testant que 2 fichiers sur
+# 56. À remonter progressivement (ex: +2-3 points par sprint) au fur et à
+# mesure que le drift tests/code (voir 0052_add_blueprints_tables.py et les
+# fixes de services/*.py) est résorbé. Ne JAMAIS baisser ce chiffre à nouveau
+# sans le documenter ici.
+fail_under = 48
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if TYPE_CHECKING:
+    raise NotImplementedError
+    pass
+    \.\.\.$
+    if __name__ == .__main__.:
+    @(abc\.)?abstractmethod
+
+[html]
+directory = reports/htmlcov
+
+[xml]
+output = reports/coverage.xml

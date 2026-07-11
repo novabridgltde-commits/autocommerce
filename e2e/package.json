@@ -1,0 +1,19 @@
+{
+  "name": "autocommerce-e2e",
+  "version": "1.0.0",
+  "description": "Tests E2E Playwright pour AutoCommerce V25",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:report": "playwright show-report playwright-report",
+    "test:ci": "playwright test --reporter=github",
+    "install:browsers": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0"
+  }
+}

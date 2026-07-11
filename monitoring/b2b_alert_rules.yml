@@ -1,0 +1,29 @@
+groups:
+  - name: autocommerce-b2b
+    rules:
+      - alert: AutoCommerceB2BHigh5xxRate
+        expr: sum(rate(http_requests_total{handler=~".*b2b.*",status=~"5.."}[5m])) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "B2B API 5xx rate elevated"
+          description: "Les endpoints B2B retournent trop d'erreurs 5xx sur les 10 dernières minutes."
+
+      - alert: AutoCommerceB2BSlowQuoteEndpoint
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{handler=~".*b2b/pricing/quote.*"}[5m])) by (le)) > 0.8
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "B2B quote endpoint latency high"
+          description: "Le p95 du calcul de devis B2B dépasse 800ms."
+
+      - alert: AutoCommerceB2BInvoiceBacklog
+        expr: increase(autocommerce_b2b_grouped_invoices_created_total[24h]) < 1
+        for: 24h
+        labels:
+          severity: info
+        annotations:
+          summary: "No grouped B2B invoices created"
+          description: "Aucune facture groupée B2B n'a été générée sur les dernières 24h."

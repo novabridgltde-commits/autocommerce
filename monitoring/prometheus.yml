@@ -1,0 +1,70 @@
+# monitoring/prometheus.yml — Configuration Prometheus AutoCommerce v25
+# Phase 6 / P3 : observabilité exploitable en prod.
+#
+# Points clés:
+#   - /metrics backend est protégé par X-Internal-Token
+#   - Alertmanager est chaîné par défaut sur le service Docker `alertmanager:9093`
+#   - Les exporters infra restent optionnels mais déclarés proprement
+#
+# Déploiement recommandé:
+#   docker run -p 9090:9090 \
+#     -v $(pwd)/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro \
+#     -v $(pwd)/monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro \
+#     # Remplacer REPLACE_WITH_INTERNAL_HEALTH_TOKEN avant démarrage
+#     prom/prometheus
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+  external_labels:
+    environment: "production"
+    service: "autocommerce-v25"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+rule_files:
+  - "alert_rules.yml"
+
+scrape_configs:
+  # ── API Server (FastAPI + prometheus_client) ──────────────────────────────
+  - job_name: "autocommerce-api"
+    static_configs:
+      - targets: ["api:8000"]
+    metrics_path: "/metrics"
+    scrape_interval: 10s
+    # Prometheus n'expanse pas les variables d'environnement dans ce YAML.
+    # Remplacer la valeur ci-dessous au déploiement (envsubst / secret injection).
+    headers:
+      X-Internal-Token: "REPLACE_WITH_INTERNAL_HEALTH_TOKEN"
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "api-server"
+
+  # ── Redis (via redis_exporter) ────────────────────────────────────────────
+  - job_name: "redis"
+    static_configs:
+      - targets: ["redis-exporter:9121"]
+    scrape_interval: 15s
+
+  # ── PostgreSQL (via postgres_exporter) ────────────────────────────────────
+  - job_name: "postgresql"
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+    scrape_interval: 15s
+
+  # ── Celery workers (via Flower) ───────────────────────────────────────────
+  - job_name: "celery-flower"
+    static_configs:
+      - targets: ["celery-flower:5555"]
+    metrics_path: "/metrics"
+    scrape_interval: 30s
+
+  # ── Prometheus self-monitoring ────────────────────────────────────────────
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]

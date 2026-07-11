@@ -1,0 +1,67 @@
+# monitoring/alertmanager.yml — Template Alertmanager AutoCommerce v25
+#
+# IMPORTANT:
+#   Alertmanager n'interpole pas automatiquement les variables shell dans ce YAML.
+#   Rendre ce template avant démarrage, par exemple:
+#     envsubst < monitoring/alertmanager.yml > /etc/alertmanager/config.yml
+#   Puis monter /etc/alertmanager/config.yml dans le conteneur Alertmanager.
+
+global:
+  resolve_timeout: 5m
+  smtp_smarthost: "REPLACE_WITH_SMTP_HOST:587"
+  smtp_from: "alerts@autocommerce.tn"
+  smtp_auth_username: "REPLACE_WITH_SMTP_USERNAME"
+  smtp_auth_password: "REPLACE_WITH_SMTP_PASSWORD"
+  smtp_require_tls: true
+
+route:
+  group_by: ["alertname", "cluster", "service"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  receiver: "default-email"
+  routes:
+    - matchers:
+        - severity="critical"
+      receiver: "pagerduty-critical"
+      continue: true
+    - matchers:
+        - severity="warning"
+      receiver: "default-email"
+
+receivers:
+  - name: "default-email"
+    email_configs:
+      - to: "REPLACE_WITH_ALERT_TO_EMAIL"
+        subject: "[AutoCommerce] {{ .GroupLabels.alertname }} — {{ .Status | toUpper }}"
+        html: |
+          {{ range .Alerts }}
+          <p><strong>Alert:</strong> {{ .Annotations.summary }}</p>
+          <p><strong>Description:</strong> {{ .Annotations.description }}</p>
+          <p><strong>Severity:</strong> {{ .Labels.severity }}</p>
+          <p><strong>Started:</strong> {{ .StartsAt.Format "2006-01-02 15:04:05" }}</p>
+          <hr/>
+          {{ end }}
+        send_resolved: true
+
+  - name: "pagerduty-critical"
+    pagerduty_configs:
+      - routing_key: "REPLACE_WITH_PAGERDUTY_ROUTING_KEY"
+        description: "{{ .GroupLabels.alertname }}: {{ .Annotations.summary }}"
+        client: "AutoCommerce Monitoring"
+        send_resolved: true
+
+  - name: "slack-ops"
+    slack_configs:
+      - api_url: "REPLACE_WITH_SLACK_WEBHOOK_URL"
+        channel: "#autocommerce-alerts"
+        title: "{{ .GroupLabels.alertname }}"
+        text: "{{ range .Alerts }}{{ .Annotations.description }}{{ end }}"
+        send_resolved: true
+
+inhibit_rules:
+  - source_matchers:
+      - severity="critical"
+    target_matchers:
+      - severity="warning"
+    equal: ["alertname", "instance"]

@@ -1,0 +1,35 @@
+{
+  "title": "AutoCommerce B2B Portal",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "B2B Accounts Created",
+      "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+      "targets": [{"expr": "sum(rate(autocommerce_b2b_accounts_created_total[5m]))", "legendFormat": "accounts/min"}]
+    },
+    {
+      "type": "timeseries",
+      "title": "B2B Quote Requests",
+      "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+      "targets": [{"expr": "sum(rate(autocommerce_b2b_quote_requests_total[5m]))", "legendFormat": "quotes/min"}]
+    },
+    {
+      "type": "timeseries",
+      "title": "Orders Created vs Approved",
+      "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+      "targets": [
+        {"expr": "sum(rate(autocommerce_b2b_orders_created_total[5m]))", "legendFormat": "created"},
+        {"expr": "sum(rate(autocommerce_b2b_orders_approved_total[5m]))", "legendFormat": "approved"}
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Grouped Invoices Created",
+      "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
+      "targets": [{"expr": "sum(rate(autocommerce_b2b_grouped_invoices_created_total[5m]))", "legendFormat": "invoices/min"}]
+    }
+  ]
+}
